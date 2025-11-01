@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Admin Panel - Check-ins by Date (status = IN)</title>
+<style>
+  /* ปุ่มกลับหน้า Admin */
+.btn-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #fff;
+  color: #2563eb;
+  font-weight: 700;
+  border: 1px solid #cbd5e1;
+  border-radius: 999px;
+  padding: 8px 16px;
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.08);
+  cursor: pointer;
+  transition: all .15s ease;
+}
+.btn-back:hover {
+  background: #2563eb;
+  color: #fff;
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25);
+  transform: translateY(-1px);
+}
+.btn-back svg {
+  width: 18px;
+  height: 18px;
+}
+
+  :root{
+    --bg:#f7f8fc; --fg:#0b1220; --muted:#6b7280; --card:#ffffff; --border:#e5e7eb;
+    --accent:#2563eb; --danger:#dc2626; --board-h:#f1f5f9; --glow:0 6px 18px rgba(2,6,23,.06);
+    --chip:#f8fafc;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.6 system-ui,Segoe UI,Roboto,Arial}
+  .wrap{max-width:1100px;margin:24px auto;padding:16px}
+  h1{text-align:center;margin:0 0 14px;font-size:22px}
+  .info-bar{display:flex;flex-wrap:wrap;gap:12px;justify-content:center;
+    background:var(--card);border:1px solid var(--border);border-radius:14px;
+    box-shadow:var(--glow);padding:12px}
+  .chip{display:inline-flex;align-items:center;gap:6px;background:var(--chip);
+    border:1px solid var(--border);padding:8px 12px;border-radius:999px;font-weight:700}
+  .clock{font-weight:800}
+  .btn-del{background:var(--danger);color:#fff;border:none;border-radius:10px;padding:10px 14px;cursor:pointer}
+  select{padding:8px 10px;border-radius:10px;border:1px solid var(--border);background:#fff;font-weight:600}
+  .board{margin-top:12px;background:var(--card);border:1px solid var(--border);border-radius:12px;box-shadow:var(--glow)}
+
+  /* header ให้อยู่บรรทัดเดียว: h2 ซ้าย / chip+select ขวา */
+  .board-header{display:flex;align-items:center;justify-content:space-between;padding:12px 16px 0}
+  .board-header h2{margin:0;font-size:18px}
+  .right-group{display:flex;align-items:center;gap:12px}
+  .muted{color:var(--muted);margin:0 16px 8px}
+  .chart-container{position:relative;height:380px;width:100%;max-width:980px;margin:8px auto}
+  @media(max-width:720px){
+    .chart-container{height:300px}
+    .right-group{flex-wrap:wrap;justify-content:flex-end}
+  }
+</style>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4"></script>
+</head>
+<body>
+<div class="wrap">
+  <h1>ระบบหลังบ้าน - จำนวนผู้เข้าร่วมงาน</h1>
+
+  <div class="info-bar">
+    <button id="btnBackAdmin" class="btn-back" style="display:none;">
+  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+  </svg>
+  กลับหน้า Admin
+</button>
+
+
+    <div class="chip">🧾 ผู้ได้รับคิวอาร์โค้ดทั้งหมด: <span id="totalGenQR">—</span> คน</div>
+    <div class="chip">✅ ลงทะเบียนเเล้ว: <span id="totalIn">—</span> คน</div>
+    <div class="chip">🧩 บูธทั้งหมด: <span id="totalBooths">—</span> ฐาน</div>
+    <div class="chip clock" id="clock"> </div>
+    <button class="btn-del" id="btnLogout">Logout</button>
+  </div>
+
+  <div class="board">
+    <div class="board-header">
+      <h2>จำนวนผู้เข้าร่วมงาน แยกตามชื่อบูธ</h2>
+      <div class="right-group">
+        <div class="chip">📅 วันที่ในข้อมูล: <span id="selectedDateText">—</span></div>
+        <select id="dateSelect"></select>
+      </div>
+    </div>
+    <p class="muted" id="subtitle">แสดงข้อมูลตามวันที่เลือก</p>
+    <div class="chart-container"><canvas id="chart"></canvas></div>
+  </div>
+</div>
+
+<script>
+/* ===== CONFIG ===== */
+const SUPABASE_URL="https://yowjvmiosrclqstoeqat.supabase.co";
+const SUPABASE_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inlvd2p2bWlvc3JjbHFzdG9lcWF0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTgwMDc0OTksImV4cCI6MjA3MzU4MzQ5OX0.p71LqTM5gaJcpaAMMnWzLgsLNAka0nmR7BYntBiSYfU";
+const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+const tz = "Asia/Bangkok";
+const fmtFull = new Intl.DateTimeFormat("th-TH",{dateStyle:"medium",timeStyle:"medium",hour12:false,timeZone:tz});
+const fmtDateTH = new Intl.DateTimeFormat("th-TH",{dateStyle:"medium",timeZone:tz});
+// ตรวจว่าเข้ามาจาก admin ด้วย query ?from=admin หรือมีธงใน sessionStorage
+const backBtn = document.getElementById('btnBackAdmin');
+const params = new URLSearchParams(location.search);
+const cameFromAdmin = (params.get('from') === 'admin') || (sessionStorage.getItem('from_admin') === '1');
+
+// โชว์ปุ่มเฉพาะคนที่มาจากหน้า admin
+if (cameFromAdmin && backBtn) {
+  backBtn.style.display = 'inline-flex';
+  backBtn.onclick = () => {
+    // ล้างธงแล้วกลับหน้า admin แบบ relative
+    sessionStorage.removeItem('from_admin');
+    const url = new URL('./admin.html', location.href);
+    location.href = url.href;
+  };
+}
+
+/* 👇 เปลี่ยนให้ตรงกับคอลัมน์เวลาในตาราง genqrcode (เช่น created_at / issued_at) */
+const GENQR_TIME_COL = "created_at";
+
+/* ===== ELEMENTS ===== */
+const elClock=document.getElementById("clock");
+const elTotalIn=document.getElementById("totalIn");
+const elTotalBooths=document.getElementById("totalBooths");
+const elTotalGenQR=document.getElementById("totalGenQR");
+const elDateSelect=document.getElementById("dateSelect");
+const elDateText=document.getElementById("selectedDateText");
+const elSubtitle=document.getElementById("subtitle");
+const btnLogout=document.getElementById("btnLogout");
+const canvas=document.getElementById("chart");
+let chart;
+
+/* ===== CLOCK (วัน+เวลาไทย) ===== */
+function tick(){ elClock.textContent = fmtFull.format(new Date()); }
+tick(); setInterval(tick,1000);
+
+/* ===== HELPERS ===== */
+function normalizeBoothName(s){
+  if(!s) return "(ไม่ระบุฐาน)";
+  return s.trim().replace(/\s+/g," ").toLowerCase();
+}
+function toLocalDateOnly(iso){
+  const d=new Date(iso);
+  return d.toLocaleDateString("en-CA",{timeZone:tz}); // yyyy-MM-dd
+}
+function dayBounds(dateStr){
+  const start = new Date(dateStr+"T00:00:00+07:00").toISOString();
+  const end = new Date(new Date(dateStr+"T00:00:00+07:00").getTime()+86400000).toISOString();
+  return [start,end];
+}
+
+/* ===== GENQRCODE SUMMARY (ตามวันที่/ทั้งหมด) ===== */
+async function loadGenQR(dateStr){
+  let q = supabase.from("genqrcode").select("id",{count:"exact",head:true});
+  if(dateStr && dateStr!=="ALL"){
+    const [start,end] = dayBounds(dateStr);
+    q = q.gte(GENQR_TIME_COL,start).lt(GENQR_TIME_COL,end);
+  }
+  const { count, error } = await q;
+  if(error){ console.warn("โหลด genqrcode ไม่สำเร็จ:", error.message); }
+  elTotalGenQR.textContent = count ?? "—";
+}
+
+/* ===== โหลดรายการวันที่จาก checkins (เพิ่ม 'ทั้งหมด') ===== */
+async function loadAvailableDates(){
+  const { data, error } = await supabase
+    .from("checkins")
+    .select("checkin_time")
+    .order("checkin_time",{ascending:true});
+
+  if(error){ alert("โหลด checkin_time ไม่ได้: "+error.message); return []; }
+
+  const set=new Set();
+  for(const r of data){ if(r.checkin_time) set.add(toLocalDateOnly(r.checkin_time)); }
+  const list=[...set].sort();                // yyyy-MM-dd
+  const options = ['ALL', ...list];          // ใส่ “ทั้งหมด” ไว้หัวรายการ
+
+  elDateSelect.innerHTML = options.map(d=>{
+    const label = (d==='ALL') ? "ทั้งหมด" : fmtDateTH.format(new Date(d));
+    return `<option value="${d}">${label}</option>`;
+  }).join("");
+
+  return options;
+}
+
+/* ===== โหลดกราฟตามวัน (หรือทั้งหมด) ===== */
+async function loadChartByDate(dateStr){
+  // label ด้านบน
+  elDateText.textContent = (dateStr==="ALL") ? "ทั้งหมด" : fmtDateTH.format(new Date(dateStr));
+  elSubtitle.textContent = (dateStr==="ALL") ? "แสดงข้อมูลทั้งหมด" : "แสดงข้อมูลตามวันที่เลือก";
+
+  // ผู้ได้รับคิวอาร์โค้ดทั้งหมด (genqrcode) ให้เป็นตามตัวเลือก
+  await loadGenQR(dateStr);
+
+  // ดึง checkins
+  let q = supabase
+    .from("checkins")
+    .select("booth,status,checkin_time")
+    .eq("status","IN");
+  if(dateStr && dateStr!=="ALL"){
+    const [start,end] = dayBounds(dateStr);
+    q = q.gte("checkin_time", start).lt("checkin_time", end);
+  }
+
+  const { data, error } = await q.range(0,99999);
+  if(error){ alert("โหลด checkins ไม่สำเร็จ: "+error.message); return; }
+
+  // รวมข้อมูลตามบูธ
+  const map=new Map();
+  for(const r of data){
+    const booth=(r.booth?.trim()||"(ไม่ระบุฐาน)");
+    const norm=normalizeBoothName(booth);
+    if(!map.has(norm)) map.set(norm,{names:new Set(),count:0});
+    const o=map.get(norm);
+    o.names.add(booth);
+    o.count++;
+  }
+
+  // ตัวเลขรวม
+  elTotalIn.textContent=data.length||0;
+  elTotalBooths.textContent=map.size;
+
+  // เตรียมข้อมูลกราฟ
+  const pairs=[...map.entries()].map(([norm,v])=>{
+    let label=[...v.names].sort((a,b)=>a.length-b.length)[0];
+    if(v.names.size>1) label+=" *";
+    return {booth:label,count:v.count};
+  }).sort((a,b)=>b.count-a.count);
+
+  const labels=pairs.map(p=>p.booth);
+  const values=pairs.map(p=>p.count);
+
+  // วาดกราฟ
+  if(chart) chart.destroy();
+  chart=new Chart(canvas,{
+    type:"bar",
+    data:{labels,datasets:[{label:"จำนวนคนที่ Check-in ",data:values,
+                            backgroundColor:"rgba(37,99,235,.75)",borderRadius:8}]},
+    options:{responsive:true,maintainAspectRatio:false,
+      scales:{y:{beginAtZero:true,ticks:{stepSize:1}},x:{ticks:{autoSkip:false}}}}
+  });
+}
+
+/* ===== INIT ===== */
+btnLogout.onclick=()=>{location.href="signin.html";};
+elDateSelect.onchange=()=>loadChartByDate(elDateSelect.value);
+
+(async()=>{
+  const options = await loadAvailableDates();       // ['ALL', ...dates]
+  // ค่าเริ่มต้น: ถ้ามีวันที่ให้เลือก เลือก “ล่าสุด”; ถ้าไม่มี ใช้ “ทั้งหมด”
+  let defaultVal = "ALL";
+  if(options.length > 1){ defaultVal = options[options.length-1]; } // ตัวท้ายสุดคือวันที่ล่าสุด
+  elDateSelect.value = defaultVal;
+  loadChartByDate(defaultVal);
+})();
+</script>
+</body>
+</html>

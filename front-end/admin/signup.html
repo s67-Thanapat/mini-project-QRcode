@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Sign up</title>
+
+  <style>
+    :root{
+      --bg1:#0b5bd3; --bg2:#23a6ff;
+      --text:#0f172a; --muted:#6b7280;
+      --border:#e5e7eb; --primary:#2563eb; --primary-2:#1e40af;
+      --card:#ffffff;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0; font:16px/1.5 system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial;
+      color:var(--text);
+      background: radial-gradient(1200px 600px at 15% -10%, #ffffff66, transparent),
+                  linear-gradient(120deg,var(--bg1),var(--bg2));
+      display:grid; place-items:center; padding:24px;
+    }
+
+    .card{
+      width: min(92vw, 420px);
+      background:var(--card);
+      border:1px solid #e6e9f3;
+      border-radius:16px;
+      box-shadow: 0 20px 60px rgba(0,0,0,.15);
+      padding:24px 24px 18px;
+      position:relative;
+    }
+
+    h1{ margin:0 0 4px; font-weight:800; letter-spacing:.3px; text-align:center }
+    .sub{color:var(--muted); margin:0 0 18px; font-size:.95rem; text-align:center}
+
+    .field{margin:10px 0 12px}
+    .label{display:block; font-size:.9rem; color:var(--muted); margin:0 0 6px}
+    .input-wrap{
+      position:relative; border:1px solid var(--border); border-radius:10px; background:#fff;
+      display:flex; align-items:center;
+    }
+    input{
+      width:100%; border:0; outline:none; background:transparent;
+      padding:12px 14px; font:inherit; color:inherit;
+    }
+    .show-toggle{
+      position:absolute; right:10px; top:50%; transform:translateY(-50%);
+      font-size:.9rem; color:var(--primary); cursor:pointer; user-select:none;
+    }
+    .row{ display:flex; align-items:center; justify-content:space-between; gap:10px; margin:6px 0 10px; font-size:.9rem; }
+    .checkbox{display:flex; align-items:center; gap:8px; user-select:none}
+    .checkbox input{ accent-color:var(--primary) }
+    .muted{ color:var(--muted) }
+
+    button{
+      width:100%; border:0; outline:0; cursor:pointer;
+      background:var(--primary); color:#fff; font-weight:700;
+      border-radius:12px; padding:12px 14px; margin-top:6px;
+      box-shadow: 0 6px 18px rgba(37,99,235,.35);
+    }
+    button:hover{ background:var(--primary-2) }
+
+    #msg{ margin-top:10px; font-size:.92rem }
+    .foot{ margin-top:12px; text-align:center; color:var(--muted); font-size:.92rem }
+    .foot a{ color:var(--primary); text-decoration:none }
+    .foot a:hover{ text-decoration:underline }
+
+    /* ✅ ปุ่มย้อนกลับด้านล่างซ้าย */
+    .back-wrap{
+      margin-top:10px;
+      display:flex;
+      justify-content:flex-start; /* ชิดซ้าย */
+    }
+    .back-btn{
+      background:#f3f4f6;
+      color:var(--text);
+      border:1px solid var(--border);
+      border-radius:8px;
+      padding:6px 14px;
+      font-size:.85rem;
+      cursor:pointer;
+    }
+    .back-btn:hover{ background:#e5e7eb }
+  </style>
+
+  <!-- Supabase SDK -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+  <div class="card">
+    <h1>Sign up</h1>
+    <p class="sub">สร้างบัญชีใหม่เพื่อเริ่มใช้งาน</p>
+
+    <form id="signupForm">
+      <div class="field">
+        <label class="label" for="display_name">ชื่อที่แสดง (ไม่บังคับ)</label>
+        <div class="input-wrap">
+          <input id="display_name" type="text" placeholder="เช่น Ozone" autocomplete="nickname" />
+        </div>
+      </div>
+
+      <div class="field">
+        <label class="label" for="email">อีเมล</label>
+        <div class="input-wrap">
+          <input id="email" type="email" placeholder="name@example.com" autocomplete="email" required />
+        </div>
+      </div>
+
+      <div class="field">
+        <label class="label" for="password">รหัสผ่าน</label>
+        <div class="input-wrap">
+          <input id="password" type="password" placeholder="อย่างน้อย 6 ตัวอักษร" autocomplete="new-password" minlength="6" required />
+          <span id="toggle" class="show-toggle">SHOW</span>
+        </div>
+      </div>
+
+      <div class="row">
+        <label class="checkbox">
+          <input id="tos" type="checkbox" required />
+          <span class="muted">ฉันยอมรับเงื่อนไขการใช้งาน</span>
+        </label>
+      </div>
+
+      <button type="submit">สร้างบัญชี</button>
+      <div id="msg" role="status" aria-live="polite"></div>
+
+      <!-- ✅ ปุ่มย้อนกลับด้านล่างซ้าย -->
+      <div class="back-wrap">
+        
+      </div>
+    </form>
+
+    <div class="foot">
+      มีบัญชีอยู่แล้ว? <a href="./signin.html">Sign in</a>
+    </div>
+  </div>
+
+  <script>
+    // คีย์โปรเจกต์ของคุณ
+    const SUPABASE_URL = "https://yowjvmiosrclqstoeqat.supabase.co";
+    const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inlvd2p2bWlvc3JjbHFzdG9lcWF0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTgwMDc0OTksImV4cCI6MjA3MzU4MzQ5OX0.p71LqTM5gaJcpaAMMnWzLgsLNAka0nmR7BYntBiSYfU";
+    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    const form = document.getElementById("signupForm");
+    const emailEl = document.getElementById("email");
+    const passEl  = document.getElementById("password");
+    const nameEl  = document.getElementById("display_name");
+    const msg = document.getElementById("msg");
+
+    // SHOW/HIDE password
+    document.getElementById("toggle").addEventListener("click", () => {
+      const isPwd = passEl.type === "password";
+      passEl.type = isPwd ? "text" : "password";
+      document.getElementById("toggle").textContent = isPwd ? "HIDE" : "SHOW";
+      passEl.focus();
+    });
+
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+
+      const email = emailEl.value.trim();
+      const password = passEl.value;
+      const display_name = nameEl.value.trim() || null;
+
+      if (password.length < 6) {
+        msg.style.color = "crimson";
+        msg.textContent = "รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร";
+        return;
+      }
+
+      msg.style.color = "#0f172a";
+      msg.textContent = "กำลังสร้างบัญชี...";
+
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: { data: { display_name } }
+      });
+
+      if (error) {
+        msg.style.color = "crimson";
+        msg.textContent = `สมัครไม่สำเร็จ: ${error.message}`;
+        return;
+      }
+
+      if (!data.session) {
+        msg.style.color = "crimson";
+        msg.textContent = "ไม่พบ session หลังสมัคร โปรดตรวจการตั้งค่า Auth ของ Supabase";
+        return;
+      }
+
+      const uid = data.user.id;
+      await supabase.from("profiles").upsert({ id: uid, email, display_name }, { onConflict: "id" });
+
+      const { data: profile } = await supabase
+        .from("profiles").select("is_admin").eq("id", uid).maybeSingle();
+
+      const isAdmin = !!(profile && profile.is_admin === true);
+      if (isAdmin) {
+        msg.style.color = "seagreen";
+        msg.textContent = "สมัครและเข้าสู่ระบบแล้ว (แอดมิน) กำลังไปหน้าแอดมิน...";
+        location.href = "admin/admin.html";
+      } else {
+        msg.style.color = "seagreen";
+        msg.textContent = "สมัครและเข้าสู่ระบบแล้ว กำลังไปหน้าแรก...";
+        location.href = "admin/show.html";
+      }
+    });
+  </script>
+</body>
+</html>

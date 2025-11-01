@@ -1,0 +1,938 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>DB Admin • Supabase (Safe)</title>
+  <style>
+    /* ปุ่มไปหน้า Check-in (โทนเดียวกับปุ่มกลับหน้า Admin) */
+.btn-checkin {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 700;
+  border-radius: 999px;
+  padding: 10px 18px;
+  background: #fff;
+  color: #2563eb;
+  border: 1px solid #cbd5e1;
+  box-shadow: 0 2px 8px rgba(37,99,235,.08);
+  cursor: pointer;
+  transition: all .15s ease;
+}
+.btn-checkin:hover {
+  background: #2563eb;
+  color: #fff;
+  box-shadow: 0 4px 12px rgba(37,99,235,.25);
+  transform: translateY(-1px);
+}
+.btn-checkin svg {
+  width: 18px;
+  height: 18px;
+}
+
+    /* จัดให้ข้อความในหัวตารางและข้อมูลอยู่ตรงกลางทั้งหมด */
+table th, table td {
+  text-align: center;
+  vertical-align: middle;
+}
+
+    .clock .date{ opacity:.75; margin-right:8px }
+    .clock .time{ font-weight:800 }
+    :root{
+      /* ===== Light Minimal Palette ===== */
+      --bg:#f6f7fb; --fg:#0b1220; --muted:#64748b; --card:#ffffff; --border:#e5e7eb;
+      --accent:#2563eb; --accent-2:#1e40af; --danger:#dc2626; --success:#059669;
+      --board-h:#f1f5f9; --row-a:#ffffff; --row-b:#f9fafb; --shadow:0 10px 30px rgba(2,6,23,.06);
+      --focus:#93c5fd; --chip:#f8fafc;
+    }
+    *{box-sizing:border-box}
+    body{ margin:0;background:var(--bg);color:var(--fg);
+      font:15px/1.65 ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Arial }
+    .wrap{max-width:1200px;margin:24px auto;padding:16px}
+    h1{margin:0 0 14px;font-size:26px;letter-spacing:.2px}
+    .info-bar,.bar{
+      display:flex;gap:12px;align-items:center;background:var(--card);
+      border:1px solid var(--border);border-radius:16px;padding:12px;box-shadow:var(--shadow)
+    }
+    .chip{ display:inline-flex;align-items:center;gap:8px;background:var(--chip);
+      border:1px solid var(--border);padding:8px 12px;border-radius:999px;font-weight:700 }
+    .muted{color:var(--muted)}
+    .clock{margin-left:auto;font-weight:800;letter-spacing:.5px}
+    .spacer{flex:1}
+
+    input[type="search"], input[type="text"], input[type="email"],
+    input[type="datetime-local"], input[type="date"], select, textarea{
+      padding:10px 12px;border-radius:12px;border:1px solid var(--border);
+      background:#fff;color:var(--fg);outline:none;min-width:220px;
+      transition:border-color .15s, box-shadow .15s, background .15s
+    }
+    input:focus, select:focus, textarea:focus{ border-color:var(--accent); box-shadow:0 0 0 3px var(--focus) }
+
+    button{
+      padding:10px 14px;border:none;border-radius:12px;cursor:pointer;
+      font-weight:600;transition:transform .06s ease, box-shadow .15s, background-color .15s, color .15s
+    }
+    button:active{transform:translateY(1px)}
+    .btn{background:var(--accent);color:#fff;box-shadow:0 2px 10px rgba(37,99,235,.18)}
+    .btn:hover{background:var(--accent-2)}
+    .btn-ghost{background:#fff;color:var(--fg);border:1px solid var(--border)}
+    .btn-ghost:hover{box-shadow:0 2px 10px rgba(2,6,23,.08)}
+    .btn-del{background:var(--danger);color:#fff}
+    .btn:disabled,.btn-ghost:disabled,.btn-del:disabled{ opacity:.5; cursor:not-allowed; box-shadow:none }
+
+    .board{margin-top:12px;border:1px solid var(--border);border-radius:14px;overflow:auto;box-shadow:var(--shadow);background:var(--card)}
+    table{width:100%;border-collapse:collapse;font-size:14px;table-layout:auto;min-width:900px}
+    thead th{
+      background:var(--board-h);text-transform:uppercase;letter-spacing:.35px;
+      padding:10px;border-bottom:1px solid var(--border);color:#334155;font-weight:800;position:sticky;top:0;z-index:1
+    }
+    tbody td{padding:10px;border-bottom:1px solid var(--border);color:#0f172a;vertical-align:top}
+    tbody tr:nth-child(odd){background:var(--row-a)} tbody tr:nth-child(even){background:var(--row-b)}
+    td[contenteditable="true"]{outline:none}
+    td[contenteditable="true"]:focus{box-shadow: inset 0 0 0 2px var(--focus)}
+    .mono{font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace}
+    .nowrap{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .foot{display:flex;justify-content:space-between;align-items:center;margin-top:8px}
+    .notice{margin-top:8px;color:#b45309;font-size:13px}
+
+    /* Tabs */
+    .tabs{display:flex; gap:8px; margin:12px 0}
+    .tab{padding:8px 14px; border:1px solid var(--border); border-radius:999px; background:#fff; cursor:pointer; font-weight:700}
+    .tab.active{background:var(--accent); color:#fff; border-color:var(--accent)}
+
+    .panel{display:none}
+    .panel.active{display:block}
+
+    /* Audit panel extras & shared pagination */
+    .pagination-wrap{display:flex; align-items:center; gap:8px; justify-content:flex-end}
+    .pill{display:inline-flex; align-items:center; gap:6px; padding:2px 8px; border:1px solid var(--border); border-radius:999px; background:#fff; font-size:12px}
+    .diff{font-size:13px; background:#0b1220; color:#e5e7eb; padding:8px; border-radius:8px; margin-top:6px; overflow:auto}
+    .k{color:#93c5fd} .v-old{color:#fca5a5} .v-new{color:#86efac}
+
+    .info-bar,.bar,.board{backdrop-filter:saturate(120%) blur(0px)}
+    @media (max-width:720px){
+      .wrap{padding:12px}
+      .clock{margin-left:0}
+      input[type="search"]{min-width:160px;flex:1}
+      .bar{flex-wrap:wrap}
+      table{font-size:13px}
+    }
+  </style>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+  <div class="wrap">
+    <h1>DB Admin • Supabase</h1>
+
+    <!-- Summary -->
+    <div class="info-bar">
+      
+      <button id="btnGoCheckin" class="btn-checkin">
+  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+      d="M9 5l7 7-7 7" />
+  </svg>
+  ไปหน้า Check-in
+</button>
+
+      <div class="chip">📦 มีทั้งหมด: <span id="tableCount" class="mono">—</span>ตาราง</div>
+      <div class="chip">🧑 ผู้ใช้: <span id="userEmail" class="mono">—</span></div>
+      <button class="btn-del" id="btnLogout">🚪 Logout</button>
+      <div class="clock" id="clock">--:--:--</div>
+    </div>
+
+    <!-- Tabs -->
+    <div class="tabs">
+      <button id="tabData" class="tab active" title="จัดการข้อมูล">📁 Data</button>
+      <button id="tabAudit" class="tab" title="ประวัติการแก้ไข (อ่านอย่างเดียว)">🕵️ Audit Logs</button>
+    </div>
+
+    <!-- ============ PANEL: DATA ============ -->
+    <div id="panelData" class="panel active" aria-label="Data Panel">
+      <!-- Toolbar -->
+      <div class="bar" style="margin-top:12px; flex-wrap:wrap">
+        <label class="muted">ตาราง</label>
+        <select id="tableSelect"></select>
+
+        <!-- ▼▼ เพิ่มตัวกรองวัน + เลือกคอลัมน์เวลา ▼▼ -->
+        <div style="display:flex; gap:8px; align-items:center">
+          <label class="muted">วัน</label>
+          <input id="dayFilter" type="date" />
+          <select id="timeColSelect" style="display:none" title="คอลัมน์เวลาที่ใช้กรอง"></select>
+          <button class="btn-ghost" id="btnClearDay" title="ล้างตัวกรองวัน">ล้างวัน</button>
+        </div>
+        <!-- ▲▲ -->
+
+        <button class="btn" id="btnRefresh">รีเฟรช</button>
+        <button class="btn-ghost" id="btnAddRow">เพิ่มแถว</button>
+        <button class="btn-ghost" id="btnSaveEdits">บันทึกการแก้ไข</button>
+        <button class="btn-del" id="btnDeleteRows">ลบแถวที่เลือก</button>
+
+        <span class="spacer"></span>
+        <input id="search" type="search" placeholder="ค้นหา (ทุกคอลัมน์)" autocomplete="off" />
+        <button class="btn-ghost" id="btnExport">⬇️ CSV</button>
+        
+      </div>
+
+      <!-- Structure / SQL -->
+      <div class="bar" style="margin-top:12px">
+        <details>
+          <summary class="muted" style="cursor:pointer">🔐 โครงสร้างตาราง (SQL สำหรับผู้ดูแล)</summary>
+          <div style="margin-top:8px">
+            <textarea id="sqlInput" class="sql-box" placeholder="ตัวอย่าง: CREATE TABLE public.demo(id uuid primary key default gen_random_uuid(), name text);"></textarea>
+            <div style="display:flex; gap:8px; margin-top:8px">
+              <button class="btn" id="btnRunSQL">รัน SQL (Edge Function)</button>
+              <div class="muted">* ต้องตั้งค่า Edge Function <span class="mono">admin-sql</span> + CORS ก่อน</div>
+            </div>
+            <pre id="sqlResult" style="margin-top:8px; background:#0b1220; color:#e5e7eb; padding:10px; border-radius:8px; max-height:240px; overflow:auto"></pre>
+          </div>
+        </details>
+      </div>
+
+      <!-- Data Table -->
+      <div class="board">
+        <table aria-label="ตารางข้อมูล">
+          <thead id="thead"></thead>
+          <tbody id="tbody"><tr><td class="muted" style="padding:12px">เลือกตารางเพื่อแสดงข้อมูล…</td></tr></tbody>
+        </table>
+      </div>
+
+      <div class="foot">
+        <div id="countLabel" class="muted">—</div>
+        <div class="muted">อัปเดตล่าสุด: <span id="lastUpdate">—</span></div>
+      </div>
+
+      <!-- ▼▼ เพจจิ้งฝั่ง Data (25 ต่อหน้า) ▼▼ -->
+      <div class="pagination-wrap" style="margin-top:8px">
+        <div class="pill">หน้า: <span id="dataPageCur" class="mono">1</span> / <span id="dataPageMax" class="mono">1</span></div>
+        <button class="btn-ghost" id="btnDataPrev" title="ก่อนหน้า">◀</button>
+        <button class="btn-ghost" id="btnDataNext" title="ถัดไป">▶</button>
+      </div>
+      <!-- ▲▲ -->
+
+      <div id="notice" class="notice"></div>
+    </div>
+
+    <!-- ============ PANEL: AUDIT (READ-ONLY) ============ -->
+    <div id="panelAudit" class="panel" aria-label="Audit Panel (read-only)">
+      <!-- Filter bar -->
+      <div class="bar" style="margin-top:12px; gap:10px; align-items:flex-end">
+        <div style="display:flex; flex-direction:column; gap:6px">
+          <label class="muted">ตาราง (target_table)</label>
+          <input id="afTable" type="text" placeholder="เช่น qrcodes (ว่าง=ทั้งหมด)" />
+        </div>
+        <div style="display:flex; flex-direction:column; gap:6px">
+          <label class="muted">อีเมลแอดมิน</label>
+          <input id="afEmail" type="email" placeholder="เช่น admin@example.com (ว่าง=ทั้งหมด)" />
+        </div>
+        <div style="display:flex; flex-direction:column; gap:6px">
+          <label class="muted">Action</label>
+          <select id="afAction">
+            <option value="">ทั้งหมด</option>
+            <option>INSERT</option>
+            <option>UPDATE</option>
+            <option>DELETE</option>
+            <option>SQL</option>
+          </select>
+        </div>
+        <div style="display:flex; flex-direction:column; gap:6px">
+          <label class="muted">เริ่ม</label>
+          <input id="afFrom" type="datetime-local" />
+        </div>
+        <div style="display:flex; flex-direction:column; gap:6px">
+          <label class="muted">ถึง</label>
+          <input id="afTo" type="datetime-local" />
+        </div>
+      </div>
+      <div class="audit-actions" style="margin:8px 0 12px">
+        <button class="btn" id="btnAuditSearch">ค้นหา</button>
+        <button class="btn-ghost" id="btnAuditReset">ล้างตัวกรอง</button>
+        <button class="btn-ghost" id="btnAuditRefresh">รีเฟรช</button>
+      </div>
+      <div class="board">
+        <table aria-label="audit logs">
+          <thead>
+            <tr>
+              <th style="min-width:160px">เวลา</th>
+              <th>ผู้แก้</th>
+              <th>Action</th>
+              <th>Table / PK</th>
+              <th>คอลัมน์ที่เปลี่ยน</th>
+              <th>Diff</th>
+              <th>Meta</th>
+            </tr>
+          </thead>
+          <tbody id="auditBody">
+            <tr><td class="muted" style="padding:12px">— ไม่มีข้อมูล —</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="foot">
+        <div id="auditCount" class="muted">—</div>
+        <div class="muted">โหลดเมื่อ: <span id="auditLast" class="mono">—</span></div>
+      </div>
+      <div class="pagination-wrap" style="margin-top:8px">
+        <div class="pill">หน้า: <span id="auditPageCur" class="mono">1</span> / <span id="auditPageMax" class="mono">1</span></div>
+        <button class="btn-ghost" id="btnAuditPrev" title="ก่อนหน้า">◀</button>
+        <button class="btn-ghost" id="btnAuditNext" title="ถัดไป">▶</button>
+      </div>
+    </div>
+  </div>
+
+<script>
+/* ---------- CONFIG ---------- */
+const SUPABASE_URL = "https://yowjvmiosrclqstoeqat.supabase.co";
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inlvd2p2bWlvc3JjbHFzdG9lcWF0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTgwMDc0OTksImV4cCI6MjA3MzU4MzQ5OX0.p71LqTM5gaJcpaAMMnWzLgsLNAka0nmR7BYntBiSYfU";
+const EDGE_BASE = "https://yowjvmiosrclqstoeqat.functions.supabase.co";
+const EDGE_FUNC = "admin-sql";
+const ALLOW_SQL = true;
+
+const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const tz='Asia/Bangkok';
+const fmtTime = new Intl.DateTimeFormat('th-TH',{hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false,timeZone:tz});
+const fmtFull = new Intl.DateTimeFormat('th-TH',{dateStyle:'medium', timeStyle:'medium', hour12:false, timeZone:tz});
+
+/* ---------- ELEMENTS: Data panel ---------- */
+const tableSelect = document.getElementById('tableSelect');
+const tableCount  = document.getElementById('tableCount');
+const userEmail   = document.getElementById('userEmail');
+const thead = document.getElementById('thead');
+const tbody = document.getElementById('tbody');
+const btnRefresh = document.getElementById('btnRefresh');
+const btnAddRow  = document.getElementById('btnAddRow');
+const btnSaveEdits = document.getElementById('btnSaveEdits');
+const btnDeleteRows = document.getElementById('btnDeleteRows');
+const btnExport  = document.getElementById('btnExport');
+const btnLogout  = document.getElementById('btnLogout');
+const search = document.getElementById('search');
+const countLabel = document.getElementById('countLabel');
+const lastUpdate = document.getElementById('lastUpdate');
+const notice = document.getElementById('notice');
+const clock = document.getElementById('clock');
+const fmtDate = new Intl.DateTimeFormat('th-TH', { dateStyle:'medium', timeZone: tz });
+
+// เปิดหน้า show.html แบบ relative และตั้งธงใน sessionStorage + query
+const btnGoCheckin = document.getElementById('btnGoCheckin');
+if (btnGoCheckin) {
+  btnGoCheckin.onclick = () => {
+    // ตั้งธงว่ามาจากหน้า admin
+    sessionStorage.setItem('from_admin', '1');
+
+    // ใช้ URL แบบ relative ให้ทำงานได้ทั้ง Live Server และโฮสต์จริง
+    const url = new URL('./show.html', location.href);
+    url.searchParams.set('from', 'admin');
+    location.href = url.href;
+  };
+}
+
+
+
+
+
+/* ▼▼ Data filters & pagination ▼▼ */
+const dayFilter = document.getElementById('dayFilter');
+const btnClearDay = document.getElementById('btnClearDay');
+const timeColSelect = document.getElementById('timeColSelect');
+const dataPageCur = document.getElementById('dataPageCur');
+const dataPageMax = document.getElementById('dataPageMax');
+const btnDataPrev = document.getElementById('btnDataPrev');
+const btnDataNext = document.getElementById('btnDataNext');
+
+const DATA_PAGE_SIZE = 25;
+let dataPage = 1;
+let TIME_COL = null; // ชื่อคอลัมน์เวลา
+/* ▲▲ */
+
+/* ---------- ELEMENTS: Tabs ---------- */
+const tabData = document.getElementById('tabData');
+const tabAudit = document.getElementById('tabAudit');
+const panelData = document.getElementById('panelData');
+const panelAudit = document.getElementById('panelAudit');
+
+/* ---------- ELEMENTS: Audit panel ---------- */
+const afTable = document.getElementById('afTable');
+const afEmail = document.getElementById('afEmail');
+const afAction = document.getElementById('afAction');
+const afFrom = document.getElementById('afFrom');
+const afTo = document.getElementById('afTo');
+const btnAuditSearch = document.getElementById('btnAuditSearch');
+const btnAuditReset = document.getElementById('btnAuditReset');
+const btnAuditPrev = document.getElementById('btnAuditPrev');
+const btnAuditNext = document.getElementById('btnAuditNext');
+const auditBody = document.getElementById('auditBody');
+const auditPageCur = document.getElementById('auditPageCur');
+const auditPageMax = document.getElementById('auditPageMax');
+const auditCount = document.getElementById('auditCount');
+const auditLast = document.getElementById('auditLast');
+const btnAuditRefresh = document.getElementById('btnAuditRefresh');
+
+/* ---------- STATE ---------- */
+let CURRENT_TABLE = null;
+let COLUMNS = [];      // [{column_name, data_type, is_nullable, column_default}]
+let PKCOLUMNS = [];    // ["id", ...]
+let RAW_ROWS = [];     // raw from db
+let EDIT_BUFFER = new Map(); // key: rowKey; val: {patch obj}
+
+/* ---------- AUDIT CONFIG/STATE ---------- */
+const AUDIT_TABLE = "audit_logs";
+let CURRENT_ADMIN = { id: null, email: null };
+const AUDIT_PAGE_SIZE = 50;
+let auditPage = 1;
+let auditTotal = 0;
+let CURRENT_TAB = 'data';
+
+/* ---------- CLOCK ---------- */
+function tick(){
+  const now = new Date();
+  clock.innerHTML = `<span class="date">${fmtDate.format(now)}</span> <b class="time">${fmtTime.format(now)}</b>`;
+}
+tick();
+setInterval(tick, 1000);
+/* ---------- AUTH INFO ---------- */
+(async()=>{
+  const { data: { user } } = await supabase.auth.getUser();
+  CURRENT_ADMIN = { id: user?.id ?? null, email: user?.email ?? 'anonymous' };
+  userEmail.textContent = CURRENT_ADMIN.email ?? 'anonymous';
+})();
+
+/* ---------- TAB CONTROL (disable actions on Audit) ---------- */
+function setDataActions(enabled){
+  [btnAddRow, btnSaveEdits, btnDeleteRows].forEach(b=>{
+    b.disabled = !enabled;
+    b.title = enabled ? '' : 'ปิดการทำงานชั่วคราว (อ่านอย่างเดียว)';
+  });
+  if(!enabled) notice.textContent = "ℹ️ โหมดอ่านอย่างเดียว — ปุ่มเพิ่ม/แก้/ลบถูกปิดไว้";
+  else notice.textContent = "";
+}
+function setTab(name){
+  CURRENT_TAB = name;
+  if(name==='data'){
+    tabData.classList.add('active'); tabAudit.classList.remove('active');
+    panelData.classList.add('active'); panelAudit.classList.remove('active');
+    setDataActions(CURRENT_TABLE !== AUDIT_TABLE);
+  }else{
+    tabAudit.classList.add('active'); tabData.classList.remove('active');
+    panelAudit.classList.add('active'); panelData.classList.remove('active');
+    setDataActions(false);
+    loadAudit(true);
+  }
+}
+tabData.onclick = ()=> setTab('data');
+tabAudit.onclick = ()=> setTab('audit');
+
+/* ---------- LOAD TABLE LIST ---------- */
+async function loadTables(){
+  tableSelect.innerHTML = `<option value="">กำลังโหลด…</option>`;
+  try{
+    const { data, error } = await supabase.rpc('list_public_tables');
+    if(error) throw error;
+    tableSelect.innerHTML = `<option value="" disabled selected>— เลือกตาราง —</option>` + 
+      data.map(r=>`<option value="${r.table_name}">${r.table_name} (${r.row_count})</option>`).join('');
+    tableCount.textContent = data.length;
+  }catch(e){
+    tableSelect.innerHTML = `<option value="" disabled selected>สร้าง RPC list_public_tables ก่อน</option>`;
+    tableCount.textContent = '—';
+    notice.textContent = "ℹ️ กรุณาสร้าง RPC 'list_public_tables', 'list_columns', 'list_primary_key'";
+  }
+}
+
+/* ---------- helper: หา time columns ---------- */
+function detectTimeColumns(){
+  const timeLikeNames = new Set(['created_at','updated_at','event_ts','ts','inserted_at','time','timestamp','date']);
+  const timeCols = COLUMNS.filter(c=>{
+    const t = (c.data_type||'').toLowerCase();
+    const byType = t.includes('timestamp') || t.includes('date');
+    const byName = timeLikeNames.has(c.column_name.toLowerCase());
+    return byType || byName;
+  }).map(c=>c.column_name);
+  return [...new Set(timeCols)];
+}
+function initTimeColUI(){
+  const cols = detectTimeColumns();
+  if(cols.length === 0){
+    TIME_COL = null;
+    timeColSelect.style.display = 'none';
+    timeColSelect.innerHTML = '';
+    dayFilter.disabled = true;
+    dayFilter.title = 'ไม่พบคอลัมน์ชนิดวันที่/เวลาในตารางนี้';
+  }else if(cols.length === 1){
+    TIME_COL = cols[0];
+    timeColSelect.style.display = 'none';
+    timeColSelect.innerHTML = '';
+    dayFilter.disabled = false;
+    dayFilter.title = `ใช้คอลัมน์เวลา: ${TIME_COL}`;
+  }else{
+    // ให้เลือกเอง
+    timeColSelect.style.display = '';
+    timeColSelect.innerHTML = cols.map(c=>`<option value="${c}">${c}</option>`).join('');
+    TIME_COL = cols[0];
+    dayFilter.disabled = false;
+    dayFilter.title = `ใช้คอลัมน์เวลา: ${TIME_COL}`;
+  }
+}
+
+/* ---------- LOAD STRUCTURE ---------- */
+async function loadStructure(table){
+  const [cols, pk] = await Promise.all([
+    supabase.rpc('list_columns', { p_table: table }),
+    supabase.rpc('list_primary_key', { p_table: table })
+  ]);
+  if(cols.error) throw cols.error;
+  if(pk.error) throw pk.error;
+  COLUMNS = cols.data || [];
+  PKCOLUMNS = (pk.data || []).map(x=>x.column_name);
+  initTimeColUI(); // เตรียมตัวกรองวันตามคอลัมน์เวลา
+}
+
+/* ---------- LOAD DATA (with optional day filter) ---------- */
+async function loadData(){
+  if(!CURRENT_TABLE) return;
+  tbody.innerHTML = `<tr><td style="padding:12px" class="muted">⏳ กำลังโหลด…</td></tr>`;
+  EDIT_BUFFER.clear();
+  dataPage = 1; // reset หน้าเมื่อโหลดใหม่
+
+  // สร้าง query พื้นฐาน
+  let q = supabase.from(CURRENT_TABLE).select('*');
+
+  // ถ้ามี dayFilter และ TIME_COL
+  const day = dayFilter.value; // yyyy-mm-dd (local)
+  if(day && TIME_COL){
+    const fromISO = new Date(day + 'T00:00:00');
+    const toISO   = new Date(day + 'T23:59:59.999');
+    // แปลงเป็น ISO จริง
+    const from = fromISO.toISOString();
+    const to   = toISO.toISOString();
+    q = q.gte(TIME_COL, from).lte(TIME_COL, to);
+  }
+
+  // จำกัดดิบที่ดึง (พอสำหรับค้น/แบ่งหน้าในฝั่ง client) — ปรับได้
+  const orderCol = PKCOLUMNS[0] || COLUMNS[0]?.column_name;
+  if(orderCol) q = q.order(orderCol, { ascending:false });
+  q = q.limit(1000); // เพดานสูงนิดเผื่อค้นหน้า
+
+  const { data, error } = await q;
+  if(error){
+    tbody.innerHTML = `<tr><td style="padding:12px">❌ ${error.message}</td></tr>`;
+    return;
+  }
+  RAW_ROWS = data || [];
+  renderTable();
+  lastUpdate.textContent = fmtFull.format(new Date());
+}
+
+/* ---------- RENDER TABLE + PAGINATION ---------- */
+function renderTable(){
+  // ✅ เอาคอลัมน์ PK ออกไปเลย (ไม่แสดงทั้งหัวและข้อมูล)
+  const headCols = ['เลือก', ...COLUMNS.map(c=>c.column_name)];
+  thead.innerHTML = `<tr>
+    <th style="width:44px">เลือก</th>
+    ${COLUMNS.map(c=>`<th class="nowrap">${c.column_name}</th>`).join('')}
+  </tr>`;
+
+  const q = (search.value || '').toLowerCase();
+  const rowsFiltered = RAW_ROWS.filter(obj=>{
+    if(!q) return true;
+    return Object.values(obj).some(v=> String(v??'').toLowerCase().includes(q));
+  });
+
+  // เพจจิ้ง
+  const total = rowsFiltered.length;
+  const pageMax = Math.max(1, Math.ceil(total / DATA_PAGE_SIZE));
+  if(dataPage > pageMax) dataPage = pageMax;
+  const start = (dataPage - 1) * DATA_PAGE_SIZE;
+  const end = start + DATA_PAGE_SIZE;
+  const pageRows = rowsFiltered.slice(start, end);
+
+  if(pageRows.length===0){
+    tbody.innerHTML = `<tr><td colspan="${COLUMNS.length+1}" class="muted" style="padding:12px">— ไม่มีข้อมูล —</td></tr>`;
+  }else{
+    const isAuditTable = (CURRENT_TABLE === AUDIT_TABLE);
+    tbody.innerHTML = pageRows.map(row=>{
+      const rowKey = getRowKey(row);
+      const tds = COLUMNS.map(col=>{
+        const colName = col.column_name;
+        const val = row[colName];
+        const editable = !PKCOLUMNS.includes(colName) && !isAuditTable;
+        return `<td contenteditable="${editable}" data-col="${colName}" data-rowkey="${rowKey}">${escapeHTML(val)}</td>`;
+      }).join('');
+      return `<tr>
+        <td style="text-align:center"><input type="checkbox" class="row-select" data-rowkey="${rowKey}" ${isAuditTable?'disabled':''}></td>
+        ${tds}
+      </tr>`;
+    }).join('');
+  }
+
+  countLabel.textContent = `ทั้งหมด ${rowsFiltered.length} แถว • หน้า ${dataPage}/${pageMax}`;
+  dataPageCur.textContent = String(dataPage);
+  dataPageMax.textContent = String(pageMax);
+}
+
+
+
+/* ---------- UTIL ---------- */
+function escapeHTML(v){
+  if(v===null || v===undefined) return '';
+  return String(v).replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;');
+}
+function getRowKey(row){
+  if(PKCOLUMNS.length===0){
+    return 'ROW-' + JSON.stringify(row).length + '-' + Object.values(row).join('|').length;
+  }
+  return PKCOLUMNS.map(pk=>`${pk}:${row[pk]}`).join('|');
+}
+function parseRowKey(rowKey){
+  const obj = {};
+  rowKey.split('|').forEach(pair=>{
+    const [k,...rest] = pair.split(':');
+    obj[k] = rest.join(':');
+  });
+  return obj;
+}
+
+/* === Audit helpers (คงเดิม) === */
+function computeDiff(oldObj={}, newObj={}){
+  const diff = {};
+  const changed = [];
+  const keys = new Set([...Object.keys(oldObj||{}), ...Object.keys(newObj||{})]);
+  for(const k of keys){
+    const ov = oldObj?.[k];
+    const nv = newObj?.[k];
+    if(String(ov ?? '') !== String(nv ?? '')){
+      changed.push(k);
+      diff[k] = { old: ov ?? null, new: nv ?? null };
+    }
+  }
+  return { changed, diff };
+}
+function findOldRowByRowKey(rowKey){
+  const keys = parseRowKey(rowKey);
+  return RAW_ROWS.find(r => PKCOLUMNS.every(pk => String(r[pk]) === String(keys[pk])));
+}
+async function logAudit({ action, target_table, target_pk=null, old_data=null, new_data=null, changed_columns=null, diff=null, meta=null }){
+  try{
+    if(target_table === AUDIT_TABLE) return;
+    const payload = {
+      admin_id: CURRENT_ADMIN.id,
+      admin_email: CURRENT_ADMIN.email,
+      action, target_table, target_pk,
+      changed_columns, old_data, new_data, diff,
+      meta: Object.assign({ tz }, meta || {})
+    };
+    const { error } = await supabase.from(AUDIT_TABLE).insert(payload);
+    if(error) console.warn('audit log error:', error.message);
+  }catch(e){
+    console.warn('audit log failed:', e);
+  }
+}
+
+/* ---------- EVENTS: Edit Buffer ---------- */
+tbody.addEventListener('input', (e)=>{
+  const cell = e.target.closest('td[contenteditable]');
+  if(!cell) return;
+  if(CURRENT_TABLE === AUDIT_TABLE){ e.preventDefault(); return; }
+  const col = cell.dataset.col;
+  const rowKey = cell.dataset.rowkey;
+  const newVal = cell.textContent;
+  const patch = EDIT_BUFFER.get(rowKey) || {};
+  patch[col] = newVal;
+  EDIT_BUFFER.set(rowKey, patch);
+});
+
+/* ---------- ACTIONS (DATA) ---------- */
+btnRefresh.onclick = async ()=>{
+  if(!CURRENT_TABLE) return;
+  await loadStructure(CURRENT_TABLE);
+  await loadData();
+};
+
+btnAddRow.onclick = async ()=>{
+  if(!CURRENT_TABLE || CURRENT_TABLE === AUDIT_TABLE) return;
+  const template = {};
+  for(const c of COLUMNS){
+    if(PKCOLUMNS.includes(c.column_name) && /default/i.test(c.column_default||'')) continue;
+    template[c.column_name] = null;
+  }
+  const raw = prompt("ใส่ JSON ของแถวใหม่ (ค่าไม่ระบุ = null):", JSON.stringify(template, null, 2));
+  if(!raw) return;
+  try{
+    const obj = JSON.parse(raw);
+    const { data, error } = await supabase.from(CURRENT_TABLE).insert(obj).select('*').single();
+    if(error) throw error;
+
+    const newRow = data || {};
+    const pkVal = COLUMNS.length ? (PKCOLUMNS.map(pk=>`${pk}:${newRow[pk]}`).join('|') || null) : null;
+
+    await logAudit({
+      action: 'INSERT',
+      target_table: CURRENT_TABLE,
+      target_pk: pkVal,
+      old_data: null,
+      new_data: newRow,
+      changed_columns: Object.keys(newRow),
+      diff: null,
+      meta: { op: 'btnAddRow' }
+    });
+
+    await loadData();
+  }catch(e){
+    alert("เพิ่มไม่ได้: " + (e?.message || e));
+  }
+};
+
+btnSaveEdits.onclick = async ()=>{
+  if(CURRENT_TABLE === AUDIT_TABLE){ return; }
+  if(EDIT_BUFFER.size===0){ alert("ยังไม่มีการแก้ไข"); return; }
+  for (const [rowKey, patch] of EDIT_BUFFER.entries()){
+    try{
+      const oldRow = findOldRowByRowKey(rowKey) || {};
+      let q = supabase.from(CURRENT_TABLE).update(patch);
+      const keys = parseRowKey(rowKey);
+      for(const pk of PKCOLUMNS){ q = q.eq(pk, keys[pk]); }
+      const { data, error } = await q.select('*').single();
+      if(error) throw error;
+
+      const newRow = data || {};
+      const { changed, diff } = computeDiff(oldRow, newRow);
+
+      await logAudit({
+        action: 'UPDATE',
+        target_table: CURRENT_TABLE,
+        target_pk: rowKey,
+        old_data: oldRow,
+        new_data: newRow,
+        changed_columns: Object.keys(patch),
+        diff,
+        meta: { op: 'btnSaveEdits' }
+      });
+
+    }catch(e){
+      alert(`บันทึกไม่สำเร็จ (row ${rowKey}): ` + (e?.message || e));
+      return;
+    }
+  }
+  EDIT_BUFFER.clear();
+  await loadData();
+  alert("บันทึกแล้ว");
+};
+
+btnDeleteRows.onclick = async ()=>{
+  if(CURRENT_TABLE === AUDIT_TABLE){ return; }
+  const checks = [...document.querySelectorAll('.row-select:checked')];
+  if(checks.length===0){ alert("ยังไม่ได้เลือกแถว"); return; }
+  if(!confirm(`ลบ ${checks.length} แถว?`)) return;
+
+  for(const c of checks){
+    const rowKey = c.dataset.rowkey;
+    const oldRow = findOldRowByRowKey(rowKey) || null;
+
+    let q = supabase.from(CURRENT_TABLE).delete();
+    const keys = parseRowKey(rowKey);
+    for(const pk of PKCOLUMNS){ q = q.eq(pk, keys[pk]); }
+    const { error } = await q;
+    if(error){ alert("ลบไม่สำเร็จ: "+error.message); return; }
+
+    await logAudit({
+      action: 'DELETE',
+      target_table: CURRENT_TABLE,
+      target_pk: rowKey,
+      old_data: oldRow,
+      new_data: null,
+      changed_columns: oldRow ? Object.keys(oldRow) : null,
+      diff: null,
+      meta: { op: 'btnDeleteRows' }
+    });
+  }
+  await loadData();
+};
+
+btnExport.onclick = ()=>{
+  if(!RAW_ROWS.length) return;
+  const cols = COLUMNS.map(c=>c.column_name);
+  const header = ["_rowKey", ...cols];
+  const lines = [header.join(",")];
+  for(const row of RAW_ROWS){
+    const rk = getRowKey(row);
+    const fields = [rk, ...cols.map(c=>{
+      const v = row[c]; return `"${String(v??'').replaceAll('"','""')}"`;
+    })];
+    lines.push(fields.join(","));
+  }
+  const blob = new Blob([lines.join("\n")], {type:"text/csv;charset=utf-8"});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href=url; a.download=`${CURRENT_TABLE}_${Date.now()}.csv`; a.click();
+  URL.revokeObjectURL(url);
+};
+
+btnLogout.onclick = async ()=>{
+  await supabase.auth.signOut();
+  window.location.href = "signin.html";
+};
+
+search.addEventListener('input', renderTable);
+
+/* ▼▼ Data filter & pagination events ▼▼ */
+dayFilter.addEventListener('change', async ()=>{
+  await loadData();
+});
+btnClearDay.addEventListener('click', async ()=>{
+  dayFilter.value = '';
+  await loadData();
+});
+timeColSelect.addEventListener('change', async (e)=>{
+  TIME_COL = e.target.value || null;
+  dayFilter.title = TIME_COL ? `ใช้คอลัมน์เวลา: ${TIME_COL}` : 'ไม่พบคอลัมน์เวลา';
+  await loadData();
+});
+btnDataPrev.addEventListener('click', ()=>{
+  if(dataPage>1){ dataPage--; renderTable(); }
+});
+btnDataNext.addEventListener('click', ()=>{
+  const total = RAW_ROWS.filter(obj=>{
+    const q = (search.value || '').toLowerCase();
+    if(!q) return true;
+    return Object.values(obj).some(v=> String(v??'').toLowerCase().includes(q));
+  }).length;
+  const pageMax = Math.max(1, Math.ceil(total / DATA_PAGE_SIZE));
+  if(dataPage<pageMax){ dataPage++; renderTable(); }
+});
+/* ▲▲ */
+
+tableSelect.addEventListener('change', async ()=>{
+  CURRENT_TABLE = tableSelect.value;
+  notice.textContent = (CURRENT_TABLE===AUDIT_TABLE)
+    ? "ℹ️ กำลังดูตาราง audit_logs — โหมดอ่านอย่างเดียว (ปิดปุ่มเพิ่ม/แก้/ลบ)"
+    : "";
+  await loadStructure(CURRENT_TABLE);
+  await loadData();
+});
+
+/* ---------- RUN SQL VIA EDGE FUNCTION ---------- */
+const sqlInput = document.getElementById('sqlInput');
+const btnRunSQL = document.getElementById('btnRunSQL');
+const sqlResult = document.getElementById('sqlResult');
+if(btnRunSQL){
+  btnRunSQL.onclick = async ()=>{
+    if(!ALLOW_SQL){ alert("ยังไม่เปิดใช้งาน Edge Function"); return; }
+    const sql = sqlInput.value.trim();
+    if(!sql) return;
+    const is_admin = true; // TODO: ตรวจสิทธิ์จริง
+    try{
+      const res = await fetch(`${EDGE_BASE}/${EDGE_FUNC}`,{
+        method:'POST',
+        headers:{'content-type':'application/json'},
+        body: JSON.stringify({
+          sql, is_admin,
+          admin: CURRENT_ADMIN, tz, ts: new Date().toISOString()
+        })
+      });
+      const j = await res.json();
+      sqlResult.textContent = JSON.stringify(j,null,2);
+    }catch(e){
+      sqlResult.textContent = 'เรียกไม่สำเร็จ: ' + (e?.message || e);
+    }
+  };
+}
+
+/* ================== AUDIT VIEWER (READ-ONLY) ================== */
+function toISOLocal(dtLocal){
+  if(!dtLocal) return null;
+  const dt = new Date(dtLocal);
+  return dt.toISOString();
+}
+function renderDiffCell(diff){
+  if(!diff || typeof diff !== 'object' || Object.keys(diff).length===0){
+    return '<span class="muted">—</span>';
+  }
+  const lines = [];
+  for(const k of Object.keys(diff)){
+    const o = diff[k]?.old, n = diff[k]?.new;
+    lines.push(`<div><span class="k">${escapeHTML(k)}</span>: <span class="v-old">- ${escapeHTML(o)}</span> → <span class="v-new">+ ${escapeHTML(n)}</span></div>`);
+  }
+  return `<div class="diff">${lines.join('')}</div>`;
+}
+function renderMetaCell(meta){
+  if(!meta) return '<span class="muted">—</span>';
+  try{
+    const j = typeof meta === 'string' ? JSON.parse(meta) : meta;
+    const kv = Object.entries(j).map(([k,v])=>`<div><span class="k">${escapeHTML(k)}</span>: ${escapeHTML(typeof v==='object'? JSON.stringify(v): String(v))}</div>`);
+    return `<div style="font-size:13px">${kv.join('')}</div>`;
+  }catch(_){
+    return `<span class="mono">${escapeHTML(String(meta))}</span>`;
+  }
+}
+function fmtTS(ts){
+  try{ return fmtFull.format(new Date(ts)); }catch{ return ts }
+}
+
+async function loadAudit(reset=false){
+  if(reset){ auditPage = 1; }
+  const fromISO = toISOLocal(afFrom.value);
+  const toISO = toISOLocal(afTo.value);
+
+  let countQ = supabase.from(AUDIT_TABLE).select('id', { count:'exact', head:true });
+  if(afTable.value) countQ = countQ.eq('target_table', afTable.value.trim());
+  if(afEmail.value) countQ = countQ.eq('admin_email', afEmail.value.trim());
+  if(afAction.value) countQ = countQ.eq('action', afAction.value);
+  if(fromISO) countQ = countQ.gte('event_ts', fromISO);
+  if(toISO) countQ = countQ.lte('event_ts', toISO);
+  const { count, error: countErr } = await countQ;
+  if(countErr){ auditBody.innerHTML = `<tr><td style="padding:12px">❌ ${countErr.message}</td></tr>`; return; }
+  auditTotal = count || 0;
+
+  const from = (auditPage-1)*AUDIT_PAGE_SIZE;
+  const to = from + AUDIT_PAGE_SIZE - 1;
+
+  let q = supabase.from(AUDIT_TABLE).select('*').order('event_ts', { ascending:false }).range(from, to);
+  if(afTable.value) q = q.eq('target_table', afTable.value.trim());
+  if(afEmail.value) q = q.eq('admin_email', afEmail.value.trim());
+  if(afAction.value) q = q.eq('action', afAction.value);
+  if(fromISO) q = q.gte('event_ts', fromISO);
+  if(toISO) q = q.lte('event_ts', toISO);
+
+  const { data, error } = await q;
+  if(error){
+    auditBody.innerHTML = `<tr><td style="padding:12px">❌ ${error.message}</td></tr>`;
+    return;
+  }
+
+  if(!data || data.length===0){
+    auditBody.innerHTML = `<tr><td class="muted" style="padding:12px">— ไม่มีข้อมูล —</td></tr>`;
+  }else{
+    auditBody.innerHTML = data.map(r=>{
+      const changed = Array.isArray(r.changed_columns) ? r.changed_columns.join(', ') : (r.changed_columns ?? '—');
+      const pkShow = r.target_pk ?? '—';
+      const diffHTML = renderDiffCell(r.diff);
+      const metaHTML = renderMetaCell(r.meta);
+      return `<tr>
+        <td class="mono">${fmtTS(r.event_ts)}</td>
+        <td><div class="mono">${escapeHTML(r.admin_email ?? '—')}</div><div class="muted mono" style="font-size:12px">${escapeHTML(r.admin_id ?? '')}</div></td>
+        <td><span class="pill">${escapeHTML(r.action)}</span></td>
+        <td><div><b>${escapeHTML(r.target_table)}</b></div><div class="mono muted" style="font-size:12px">${escapeHTML(pkShow)}</div></td>
+        <td>${escapeHTML(changed)}</td>
+        <td>${diffHTML}</td>
+        <td>${metaHTML}</td>
+      </tr>`;
+    }).join('');
+  }
+
+  const pageMax = Math.max(1, Math.ceil(auditTotal / AUDIT_PAGE_SIZE));
+  auditPageMax.textContent = String(pageMax);
+  auditPageCur.textContent = String(Math.min(auditPage, pageMax));
+  auditCount.textContent = `ทั้งหมด ${auditTotal} รายการ`;
+  auditLast.textContent = fmtFull.format(new Date());
+}
+
+/* Audit: events */
+btnAuditSearch.onclick = ()=> loadAudit(true);
+btnAuditReset.onclick = ()=>{ afTable.value = ''; afEmail.value=''; afAction.value=''; afFrom.value=''; afTo.value=''; loadAudit(true); };
+btnAuditPrev.onclick = ()=>{ if(auditPage>1){ auditPage--; loadAudit(false); } };
+btnAuditNext.onclick = ()=>{ const pageMax = Math.max(1, Math.ceil(auditTotal / AUDIT_PAGE_SIZE)); if(auditPage<pageMax){ auditPage++; loadAudit(false); } };
+
+/* ---------- INIT ---------- */
+(async()=>{ await loadTables(); })();
+setInterval(()=>{}, 1000); // keep clock tick above
+</script>
+</body>
+</html>
