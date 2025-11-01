@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="utf-8" />
+  <title>QR Check-In System</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link href="./style.css" rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+  <script src="./paho-mqtt.min.js"></script>
+</head>
+<body>
+  <div class="kiosk">
+    <main class="kiosk-grid">
+      <section class="panel camera-panel">
+        <header class="panel-header">
+          <h2>📷 กล้อง</h2>
+        </header>
+        <div class="camera-frame">
+          <img
+            id="camera-feed"
+            class="camera-stream"
+            alt="Camera feed"
+            data-stream-path="/camera/stream"
+          />
+          <div id="camera-offline" class="camera-overlay">
+            <div class="camera-icon">📹</div>
+            <p>กล้องยังไม่พร้อม</p>
+            <small>ตรวจสอบว่าสคริปต์กล้องทำงานอยู่หรือไม่</small>
+          </div>
+          <div class="gesture-indicator">
+            <span id="thumb-label" class="gesture-label">ชูนิ้วโป้งค้างไว้ 3 วินาที</span>
+            <div id="thumb-progress-container" class="gesture-progress">
+              <div id="thumb-progress" class="gesture-progress-fill"></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel qr-panel">
+        <header class="panel-header">
+          <h2>📱 QR Code</h2>
+          <span id="qr-status-text" class="status-waiting">รอการตรวจจับ</span>
+        </header>
+        <div id="qrcode" class="qr-display">
+          <div class="qr-placeholder">
+            <div class="qr-icon">⌛</div>
+            <p>รอการสร้าง QR Code</p>
+          </div>
+        </div>
+        <div class="qr-meta">
+          <span class="meta-label">UUID</span>
+          <span id="qr-uuid" class="meta-value">-</span>
+        </div>
+      </section>
+    </main>
+
+    <footer class="status-bar">
+      <div class="status-item">
+        <span class="label">ระบบ</span>
+        <span id="system-status" class="status-waiting">กำลังเชื่อมต่อ...</span>
+      </div>
+      <div class="status-item">
+        <span class="label">เซนเซอร์</span>
+        <span id="sensor-status" class="status-waiting">รอตรวจจับ</span>
+      </div>
+      <div class="status-item">
+        <span class="label">กล้อง</span>
+        <span id="camera-status" class="status-waiting">รอตรวจจับ</span>
+      </div>
+    </footer>
+  </div>
+
+  <script src="./app.js"></script>
+</body>
+</html>

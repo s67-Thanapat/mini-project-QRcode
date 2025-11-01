@@ -1,0 +1,24 @@
+{
+  "name": "qrcode_main",
+  "version": "1.0.0",
+  "type": "module",
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "start": "node server.js",
+    "broker": "node broker.js",
+    "sub:ui": "node sub.js gateA/esp32-01/ui/#",
+    "pub:presence": "node pub.js gateA/esp32-01/event/presence '{\"present\":true}'",
+    "pub:thumb": "node pub.js gateA/esp32-01/ui/thumb '{\"thumb\":true}'"
+  },
+  "dependencies": {
+    "aedes": "^0.51.3",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.21.1",
+    "mqtt": "^5.14.1",
+    "node-fetch": "^3.3.2"
+  }
+  
+}

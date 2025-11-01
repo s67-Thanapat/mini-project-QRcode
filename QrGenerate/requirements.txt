@@ -1,0 +1,5 @@
+# Python dependencies for camera_thumb.py pipeline
+numpy>=1.24
+opencv-python>=4.9
+mediapipe>=0.10.14
+paho-mqtt>=1.6
