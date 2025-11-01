@@ -1,0 +1,32 @@
+﻿# ---- Python ----
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.egg-info/
+dist/
+build/
+
+# ---- Virtual environments ----
+env/
+venv/
+ENV/
+.venv/
+
+# ---- Environment & secrets ----
+.env
+
+# ---- VS Code ----
+.vscode/
+*.code-workspace
+
+# ---- Logs & temp files ----
+*.log
+*.tmp
+*.bak
+.DS_Store
+Thumbs.db
+
+# ---- OS generated ----
+ehthumbs.db
+Icon?
