@@ -1,222 +1,366 @@
 <!DOCTYPE html>
-<html lang="th" translate="no">
+<html lang="th">
+
+
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>QR สุ่มอัตโนมัติ • ป้ายทะเบียน 4 หลัก</title>
-  <style>
-    :root{
-      --bg:#0b0c10;
-      --fg:#e5e7eb;
-      --muted:#9ca3af;
-      --shadow:0 8px 32px rgba(0,0,0,.45);
-      --qr-size: 250px;
-      --frame: 20px;
-      --radius: 16px;
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Sign in</title>
 
-      --btn:#2563eb;
-      --btn-hover:#1e40af;
-      --btn-text:#fff;
+  <style>
+    :root {
+      --bg1: #0b5bd3;
+      --bg2: #23a6ff;
+      --text: #0f172a;
+      --muted: #6b7280;
+      --border: #e5e7eb;
+      --primary: #2563eb;
+      --primary-2: #1e40af;
+      --card: #ffffff;
     }
-    *{box-sizing:border-box}
-    body{
-      margin:0; background:var(--bg); color:var(--fg);
-      font:16px/1.5 system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial;
-      min-height:100dvh; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:14px;
-      padding:24px;
+
+    * {
+      box-sizing: border-box
     }
-    .title{font-weight:800; text-align:center; margin:0;}
-    .warn{color:#ff6b6b; font-weight:800; margin:0; text-align:center}
-    .plate{
-      font-size:1.5rem; font-weight:900; color:#4ade80; text-align:center; letter-spacing:.6px; margin:8px 0;
+
+    html,
+    body {
+      height: 100%
     }
-    .toolbar{display:flex; gap:10px; align-items:center; justify-content:center; flex-wrap:wrap; margin-top:8px}
-    .btn{
-      appearance:none; border:0; cursor:pointer; background:var(--btn); color:var(--btn-text);
-      font-weight:700; padding:10px 14px; border-radius:12px; box-shadow:var(--shadow); transition:.18s ease;
+
+    body {
+      margin: 0;
+      font: 16px/1.5 system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
+      color: var(--text);
+      background: radial-gradient(1200px 600px at 15% -10%, #ffffff66, transparent),
+        linear-gradient(120deg, var(--bg1), var(--bg2));
+      display: grid;
+      place-items: center;
+      padding: 24px
     }
-    .btn:hover{ background:var(--btn-hover); transform:translateY(-1px) }
-    .btn:disabled{ opacity:.6; cursor:not-allowed; transform:none }
-    .size{color:var(--muted); font-weight:700; text-align:center;}
-    .qr-frame{ background:#ffffff; padding:var(--frame); border-radius:var(--radius); box-shadow:var(--shadow); display:inline-block; }
-    .qr-box{ width:var(--qr-size); height:var(--qr-size); display:flex; align-items:center; justify-content:center; }
-    #qrCanvas canvas, #qrCanvas img{ width:100%; height:100%; background:#fff; display:block; border-radius:calc(var(--radius) - 6px); }
-    .uuid{
-      font-family:ui-monospace,Menlo,Consolas,monospace; font-size:1.05rem; color:#ffffff; letter-spacing:.4px; text-align:center;
-      background:#111318; padding:8px 12px; border-radius:10px; box-shadow:var(--shadow); min-width:180px; margin-top:10px; word-break:break-all;
+
+    .card {
+      width: min(92vw, 380px);
+      background: var(--card);
+      border: 1px solid #e6e9f3;
+      border-radius: 16px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, .15);
+      padding: 24px 24px 18px
     }
-    .countdown{ font-weight:800; }
-    .status{ font-size:.9rem; text-align:center; margin-top:6px; color:var(--muted); }
+
+    h1 {
+      margin: 0 0 4px;
+      font-weight: 800;
+      letter-spacing: .3px;
+      text-align: center
+    }
+
+    .sub {
+      color: var(--muted);
+      margin: 0 0 18px;
+      font-size: .95rem;
+      text-align: center
+    }
+
+    .field {
+      margin: 10px 0 12px
+    }
+
+    .label {
+      display: block;
+      font-size: .9rem;
+      color: var(--muted);
+      margin: 0 0 6px
+    }
+
+    .input-wrap {
+      position: relative;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: #fff;
+      display: flex;
+      align-items: center
+    }
+
+    input {
+      width: 100%;
+      border: 0;
+      outline: none;
+      background: transparent;
+      padding: 12px 14px;
+      font: inherit;
+      color: inherit
+    }
+
+    .show-toggle {
+      position: absolute;
+      right: 10px;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: .9rem;
+      color: var(--primary);
+      cursor: pointer;
+      user-select: none
+    }
+
+    .row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      margin: 6px 0 10px;
+      font-size: .9rem
+    }
+
+    .row a {
+      color: var(--primary);
+      text-decoration: none
+    }
+
+    .row a:hover {
+      text-decoration: underline
+    }
+
+    .checkbox {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      user-select: none
+    }
+
+    .checkbox input {
+      accent-color: var(--primary)
+    }
+
+    button {
+      width: 100%;
+      border: 0;
+      outline: 0;
+      cursor: pointer;
+      background: var(--primary);
+      color: #fff;
+      font-weight: 700;
+      border-radius: 12px;
+      padding: 12px 14px;
+      margin-top: 6px;
+      box-shadow: 0 6px 18px rgba(37, 99, 235, .35)
+    }
+
+    button:hover {
+      background: var(--primary-2)
+    }
+
+    #msg {
+      margin-top: 10px;
+      font-size: .92rem
+    }
+
+    .foot {
+      margin-top: 12px;
+      text-align: center;
+      color: var(--muted);
+      font-size: .92rem
+    }
+
+    .foot a {
+      color: var(--primary);
+      text-decoration: none
+    }
+
+    .foot a:hover {
+      text-decoration: underline
+    }
+
+    .card {
+      width: min(92vw, 380px);
+      background: var(--card);
+      border: 1px solid #e6e9f3;
+      border-radius: 16px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, .15);
+      padding: 24px 24px 18px
+    }
+    h1{margin:0 0 4px;font-weight:800;letter-spacing:.3px;text-align:center}
+    .sub{color:var(--muted);margin:0 0 18px;font-size:.95rem;text-align:center}
+    .field{margin:10px 0 12px}
+    .label{display:block;font-size:.9rem;color:var(--muted);margin:0 0 6px}
+    .input-wrap{position:relative;border:1px solid var(--border);border-radius:10px;background:#fff;display:flex;align-items:center}
+    input{width:100%;border:0;outline:none;background:transparent;padding:12px 14px;font:inherit;color:inherit}
+    .show-toggle{position:absolute;right:10px;top:50%;transform:translateY(-50%);font-size:.9rem;color:var(--primary);cursor:pointer;user-select:none}
+    .row{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:6px 0 10px;font-size:.9rem}
+    .row a{color:var(--primary);text-decoration:none}.row a:hover{text-decoration:underline}
+    .checkbox{display:flex;align-items:center;gap:8px;user-select:none}
+    .checkbox input{accent-color:var(--primary)}
+    button{width:100%;border:0;outline:0;cursor:pointer;background:var(--primary);color:#fff;font-weight:700;border-radius:12px;padding:12px 14px;margin-top:6px;box-shadow:0 6px 18px rgba(37,99,235,.35)}
+    button:hover{background:var(--primary-2)}
+    #msg{margin-top:10px;font-size:.92rem}
+    .foot{margin-top:12px;text-align:center;color:var(--muted);font-size:.92rem}
+    .foot a{color:var(--primary);text-decoration:none}.foot a:hover{text-decoration:underline}
+
+    /* ✅ ปุ่มย้อนกลับด้านล่างซ้าย */
+    .back-wrap{
+      margin-top:10px;
+      display:flex;
+      justify-content:flex-start;
+    }
+    .back-btn{
+      background:#f3f4f6;
+      color:var(--text);
+      border:1px solid var(--border);
+      border-radius:8px;
+      padding:6px 14px;
+      font-size:.85rem;
+      cursor:pointer;
+    }
+    .back-btn:hover{ background:#e5e7eb }
   </style>
 
-  <!-- qrcodejs + supabase -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 </head>
+
+
 <body>
-  <h1 class="title">หมายเลขของคุณ</h1>
+  <div class="card">
+    <h1>Sign in</h1>
+    <p class="sub">เข้าสู่ระบบ</p>
 
-  <!-- ป้ายทะเบียนอยู่เหนือข้อความเตือน -->
-  <div class="plate" id="plateCode">—</div>
-  <h2 class="warn">*สำคัญห้ามหาย*</h2>
+    <form id="loginForm">
+      <div class="field">
+        <label class="label" for="email">อีเมล</label>
+        <div class="input-wrap">
+          <input id="email" type="email" placeholder="name@example.com" autocomplete="email" required />
+        </div>
+      </div>
 
-  <div class="toolbar">
-    <div id="sizeLabel" class="size">ขนาด: —</div>
+      <div class="field">
+        <label class="label" for="password">รหัสผ่าน</label>
+        <div class="input-wrap">
+          <input id="password" type="password" placeholder="••••••••" autocomplete="current-password" required />
+          <span id="toggle" class="show-toggle">SHOW</span>
+        </div>
+      </div>
+
+      <div class="row">
+        <label class="checkbox">
+          <input id="remember" type="checkbox" /> Remember me
+        </label>
+        <a id="forgot" href="#">Forgot Password?</a>
+      </div>
+
+      <button type="submit">Sign in</button>
+      <div id="msg" role="status" aria-live="polite"></div>
+
+      
+      <div class="back-wrap">
+        
+
+      </div>
+    </form>
+
+    <div class="foot">
+      ยังไม่มีบัญชี? <a href="./signup.html">Sign Up</a>
+    </div>
   </div>
 
-  <div class="qr-frame">
-    <div class="qr-box"><div id="qrCanvas" aria-label="QR"></div></div>
-  </div>
+  <script>
+    const SUPABASE_URL = "https://yowjvmiosrclqstoeqat.supabase.co";
+    const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inlvd2p2bWlvc3JjbHFzdG9lcWF0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTgwMDc0OTksImV4cCI6MjA3MzU4MzQ5OX0.p71LqTM5gaJcpaAMMnWzLgsLNAka0nmR7BYntBiSYfU";
 
-  <!-- UUID 12 หลักอยู่ใต้ QR -->
-  <div class="uuid" id="uuidText">—</div>
-
-  <div class="countdown" aria-live="polite">
-    จะสร้างใหม่ใน: <span id="count">—</span> วินาที
-  </div>
-
-  <!-- ปุ่มสุ่มทันที -->
-  <div><button id="btnNow" class="btn" type="button">สุ่มทันที</button></div>
-
-  <!-- แสดงสถานะการบันทึก (สำคัญสำหรับ debug) -->
-  <div id="saveStatus" class="status">—</div>
-
-<script>
-(function(){
-  // ====== CONFIG: ใช้ค่าจริงของคุณ ======
-  const SUPABASE_URL = "https://yowjvmiosrclqstoeqat.supabase.co";
-  const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inlvd2p2bWlvc3JjbHFzdG9lcWF0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTgwMDc0OTksImV4cCI6MjA3MzU4MzQ5OX0.p71LqTM5gaJcpaAMMnWzLgsLNAka0nmR7BYntBiSYfU";
-
-  // สร้าง client
-  const supabase = window.supabase.createClient?.(SUPABASE_URL, SUPABASE_ANON_KEY);
-
-  const PERIOD_MS = 30_000;
-  const QR_PX = 250;
-  const QUIET_MARGIN = 4;
-
-  const plateEl   = document.getElementById('plateCode');
-  const uuidEl    = document.getElementById('uuidText');
-  const sizeLabel = document.getElementById('sizeLabel');
-  const countEl   = document.getElementById('count');
-  const qrBox     = document.getElementById('qrCanvas');
-  const btnNow    = document.getElementById('btnNow');
-  const statusEl  = document.getElementById('saveStatus');
-
-  let nextAt = null;
-  let ticker = null;
-  let currentPlate = null;
-
-  // ====== Helpers ======
-  // UUID 12 ตัวอักษร/ตัวเลข (A-Z, 0-9)
-  function shortUUID(len=12){
-    const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-    const arr = new Uint32Array(len);
-    crypto.getRandomValues(arr);
-    return Array.from(arr).map(v => chars[v % chars.length]).join('');
-  }
-
-  // เดินหน้า A001 -> A002 -> ... -> A999 -> B001 -> ... -> Z999 -> A001
-  function nextPlate(code){
-    if(!code || !/^[A-Z][0-9]{3}$/.test(code)) code = "A000";
-    let letter = code[0];
-    let num = parseInt(code.slice(1), 10);
-    num += 1;
-    if(num > 999){
-      num = 1;
-      letter = String.fromCharCode(letter.charCodeAt(0) + 1);
-      if(letter > 'Z'){ letter = 'A'; }
-    }
-    return letter + String(num).padStart(3, '0');
-  }
-
-  function drawQR(text){
-    qrBox.innerHTML = '';
-    new QRCode(qrBox, {
-      text,
-      width: QR_PX,
-      height: QR_PX,
-      correctLevel: QRCode.CorrectLevel.M,
-      colorDark: "#000000",
-      colorLight: "#ffffff",
-      margin: QUIET_MARGIN
+    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+      auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true }
     });
-    sizeLabel.textContent = `ขนาด: ${QR_PX}×${QR_PX} px`;
-  }
 
-  // ====== บันทึกลง DB: public.qrcodes(user_agent, code) ======
-  async function savePlateToDB(plate){
-    if(!supabase){
-      console.warn('supabase client not ready');
-      statusEl.textContent = '❌ Supabase client not ready';
-      statusEl.style.color = '#f87171';
-      return;
+    const ADMIN_EMAILS = ["ozone.gg55@gmail.com", "ozza.tv55@gmail.com" , "s6701012610180@email.kmutnb.ac.th"];
+
+    const form = document.getElementById("loginForm");
+    const emailEl = document.getElementById("email");
+    const passEl = document.getElementById("password");
+    const rememberEl = document.getElementById("remember");
+    const msg = document.getElementById("msg");
+
+    function toHref(path){
+      const clean = (path || "").replace(/^\/+/, "");
+      if (location.protocol === "http:" || location.protocol === "https:") return `/${clean}`;
+      return clean;
+    }
+    function resolveNext(next, fallback) {
+      if (next && /^https?:\/\//i.test(next)) return next;
+      const v = (next && next.trim()) || fallback || "admin/show.html";
+      return toHref(v);
+    }
+    async function ensureSessionReady(maxTries = 10, delayMs = 150){
+      for (let i=0; i<maxTries; i++){
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session && session.access_token) return true;
+        await new Promise(r => setTimeout(r, delayMs));
+      }
+      return false;
     }
 
-    // ถ้าคอลัมน์ code มี UNIQUE constraint และอยากอัปเดตทับ ให้ใช้ upsert + onConflict: 'code'
-    // ตัวอย่าง: .upsert({ user_agent: plate, code: plate }, { onConflict: 'code' })
-    const { data, error, status } = await supabase
-      .from('qrcodes')
-      .insert({ user_agent: plate, code: plate })   // ✅ เติม code ด้วยค่า plate
-      .select();
+    document.getElementById("toggle").addEventListener("click", () => {
+      const isPwd = passEl.type === "password";
+      passEl.type = isPwd ? "text" : "password";
+      document.getElementById("toggle").textContent = isPwd ? "HIDE" : "SHOW";
+      passEl.focus();
+    });
 
-    if(error){
-      console.error('Insert error:', error, 'HTTP status:', status);
-      statusEl.textContent = `❌ Insert error (${status}): ${error.message}`;
-      statusEl.style.color = '#f87171';
-      return;
-    }
+    (function initRemember(){
+      const saved = localStorage.getItem("ss_email");
+      if (saved) { emailEl.value = saved; rememberEl.checked = true; }
+    })();
 
-    console.log('Inserted:', data);
-    statusEl.textContent = `✅ Saved: ${plate}`;
-    statusEl.style.color = '#34d399';
-  }
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      msg.style.color = "#0f172a";
+      msg.textContent = "กำลังเข้าสู่ระบบ...";
 
-  // ====== สุ่ม/เดินหน้า และอัปเดตจอ ======
-  async function generate({manual=false} = {}){
-    // เดินหน้า plate
-    currentPlate = nextPlate(currentPlate);
-    plateEl.textContent = currentPlate;
+      const email = emailEl.value.trim();
+      const password = passEl.value;
 
-    // UUID 12 หลักใหม่ทุกครั้ง (แสดงผลอย่างเดียว)
-    const uuid12 = shortUUID(12);
-    uuidEl.textContent = uuid12;
+      if (rememberEl.checked) localStorage.setItem("ss_email", email);
+      else localStorage.removeItem("ss_email");
 
-    // วาด QR ด้วยข้อความเป็น plate
-    drawQR(currentPlate);
+      try {
+        const { error: signErr } = await supabase.auth.signInWithPassword({ email, password });
+        if (signErr) {
+          msg.style.color = "crimson";
+          msg.textContent = `เข้าสู่ระบบไม่สำเร็จ: ${signErr.message}`;
+          return;
+        }
 
-    // ⭐ บันทึกลงฐานข้อมูล
-    await savePlateToDB(currentPlate);
+        await ensureSessionReady();
 
-    // รีเซ็ตตัวนับเวลา
-    nextAt = Date.now() + PERIOD_MS;
+        const isAdmin = ADMIN_EMAILS.includes(email.toLowerCase());
+        if (isAdmin) {
+          msg.style.color = "seagreen";
+          msg.textContent = "เข้าสู่ระบบสำเร็จ (Admin) กำลังไปหน้าแอดมิน...";
+          setTimeout(() => { window.location.replace(toHref("admin/admin.html")); }, 200);
+          return;
+        }
 
-    // กันกดรัว
-    if(manual){
-      btnNow.disabled = true;
-      setTimeout(()=> btnNow.disabled = false, 600);
-    }
-  }
+        const nextParam = new URLSearchParams(location.search).get("next");
+        const finalUrl = resolveNext(nextParam, "admin/show.html");
 
-  function startTicker(){
-    if(ticker) clearInterval(ticker);
-    ticker = setInterval(()=>{
-      if (!nextAt){ countEl.textContent = '—'; return; }
-      const remain = Math.max(0, nextAt - Date.now());
-      const sec = Math.ceil(remain/1000);
-      countEl.textContent = sec;
-      if(remain <= 0){ generate(); }
-    }, 250);
-  }
+        msg.style.color = "seagreen";
+        msg.textContent = "เข้าสู่ระบบสำเร็จ กำลังกลับหน้าแรก...";
+        setTimeout(() => { window.location.assign(finalUrl); }, 200);
 
-  // ====== เริ่มต้น ======
-  (async function init(){
-    console.log('SUPABASE_URL:', SUPABASE_URL);
-    currentPlate = "A000";  // เริ่มให้กลายเป็น A001 ในการ generate ครั้งแรก
-    await generate();
-    btnNow.addEventListener('click', ()=> generate({manual:true}));
-    startTicker();
-  })();
-})();
-</script>
+      } catch (err) {
+        msg.style.color = "crimson";
+        msg.textContent = `เกิดข้อผิดพลาดไม่คาดคิด: ${err?.message || err}`;
+        console.error(err);
+      }
+    });
+
+    document.getElementById("forgot").addEventListener("click", async (e) => {
+      e.preventDefault();
+      const email = emailEl.value.trim();
+      if (!email) { msg.style.color = "crimson"; msg.textContent = "กรุณากรอกอีเมลก่อน"; return; }
+      const redirectTo = `${location.origin}/reset.html`;
+      const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo });
+      if (error) { msg.style.color = "crimson"; msg.textContent = `ส่งลิงก์รีเซ็ตไม่สำเร็จ: ${error.message}`; }
+      else { msg.style.color = "seagreen"; msg.textContent = "ส่งลิงก์ตั้งรหัสผ่านไปที่อีเมลแล้ว"; }
+    });
+  </script>
 </body>
+
 </html>
